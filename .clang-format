@@ -1,0 +1,17 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+BreakBeforeBraces: Attach
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: true
+AllowShortLoopsOnASingleLine: true
+ColumnLimit: 120
+SpaceBeforeParens: ControlStatements
+AlwaysBreakAfterReturnType: None
+PointerAlignment: Right
+SpacesInAngles: false
+SpaceAfterCStyleCast: true
+
+AlignConsecutiveMacros: true
+AlignConsecutiveAssignments: true
