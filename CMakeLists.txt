@@ -11,6 +11,7 @@ set(PICO_COPY_TO_RAM 1)
 # TinyUSB
 set(FAMILY rp2040)
 set(BOARD raspberry_pi_pico)
+set(PICO_TINYUSB_HOST 1)
 
 # para ayudar a localizar el SDK
 include(pico_sdk_import.cmake)
@@ -54,6 +55,8 @@ target_include_directories(TerminalEmulator PRIVATE
     ${PICO_SDK_PATH}/src/rp2_common/pico_stdlib/include
     ${PICO_DVI_PATH}/software/include
     ${PICO_DVI_PATH}/software/libdvi
+    ${PICO_SDK_PATH}/lib/tinyusb/src
+    ${CMAKE_CURRENT_LIST_DIR}/src
 )
 
 # agrega las librerias requeridas
@@ -67,6 +70,7 @@ target_link_libraries(TerminalEmulator
     hardware_pio
     hardware_pwm
     hardware_interp
+    tinyusb_host
 )
 
 # compila algunos asm llevandolos a .h
@@ -75,11 +79,11 @@ pico_generate_pio_header(TerminalEmulator
     ${PICO_DVI_PATH}/software/libdvi/dvi_serialiser.pio
 )
 
-# habilita salida estandar por USB
-#pico_enable_stdio_usb(TerminalEmulator 1)
+# habilita/deshabilita salida estandar por USB
+pico_enable_stdio_usb(TerminalEmulator 0)
 
-# desactiva la salida estandar por UART0
-#pico_enable_stdio_uart(TerminalEmulator 0)
+# habilita/deshabilita la salida estandar por UART0
+pico_enable_stdio_uart(TerminalEmulator 0)
 
 # archivos finales UF2, bin, elf
 pico_add_extra_outputs(TerminalEmulator)

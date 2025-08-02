@@ -59,7 +59,28 @@
 #define DISPLAY_ORIG_Y ((FRAME_HEIGHT - DISPLAY_HEIGHT) / 2)
 
 struct dvi_inst dvi0;
-uint8_t display_buffer[CHAR_ROWS][CHAR_COLS];
+char display_buffer[CHAR_ROWS][CHAR_COLS];
+uint16_t cur_col = 0, cur_row = 0;
+
+void display_move_to(uint16_t row, uint16_t col) {
+    cur_col = col >= CHAR_COLS ? CHAR_COLS - 1 : col;
+    cur_row = row >= CHAR_ROWS ? CHAR_ROWS - 1 : row;
+}
+
+void display_putch(char ch) {
+    display_buffer[cur_row][cur_col++] = ch;
+    if (cur_col >= CHAR_COLS) {
+        cur_col = 0;
+        if (++cur_row >= CHAR_ROWS) {
+            cur_row = CHAR_ROWS - 1;
+        }
+    }
+}
+
+void display_puts(char *text) {
+    while (*text)
+        display_putch(*text++);
+}
 
 static inline void prepare_scanline(uint y) {
     static uint8_t scanbuf[FRAME_WIDTH / 8];

@@ -18,6 +18,10 @@
 
 extern void display_init();
 extern void display_start();
-extern uint8_t display_buffer[CHAR_ROWS][CHAR_COLS];
+extern void display_move_to(uint16_t row, uint16_t col);
+extern void display_putch(char ch);
+extern void display_puts(char *text);
+
+extern char display_buffer[CHAR_ROWS][CHAR_COLS];
 
 #endif // _RCR_DISPLAY_H_
