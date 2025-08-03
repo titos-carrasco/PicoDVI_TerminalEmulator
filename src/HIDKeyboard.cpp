@@ -10,12 +10,20 @@ HIDKeyboard &HIDKeyboard::getInstance() {
 }
 
 KeyEvent HIDKeyboard::getKeyEvent() {
-    KeyEvent _keyEvent = keyEvent;
-    keyEvent           = {0, 0};
-    return _keyEvent;
+    uint32_t flags = save_and_disable_interrupts();
+
+    KeyEvent keyEvent = {0, 0};
+    keyEvents.pop(keyEvent);
+
+    restore_interrupts(flags);
+    return keyEvent;
 }
-void HIDKeyboard::putKeyEvent(KeyEvent _keyEvent) {
-    keyEvent = _keyEvent;
+void HIDKeyboard::putKeyEvent(KeyEvent keyEvent) {
+    uint32_t flags = save_and_disable_interrupts();
+
+    keyEvents.push(keyEvent);
+
+    restore_interrupts(flags);
 }
 
 extern "C" {
@@ -50,9 +58,6 @@ void process_kbd_report(hid_keyboard_report_t const *report) {
 
         KeyEvent keyEvent = {ch, report->modifier};
         HIDKeyboard::getInstance().putKeyEvent(keyEvent);
-#if RCR_DEBUG == 1
-        printf("KEY: %02X - CH: %02X - EVT.CH: %02X\n", keycode, ch, keyEvent.ch);
-#endif
     }
 }
 
