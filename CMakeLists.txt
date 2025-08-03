@@ -27,8 +27,9 @@ pico_sdk_init()
 
 # crea el target con mis fuentes
 add_executable(TerminalEmulator
-	./src/main.c
-    ./src/display.c
+	./src/main.cpp
+    ./src/DVIDisplay.cpp
+    ./src/HIDKeyboard.cpp
 )
 
 # agrega otras fuentes
@@ -47,16 +48,17 @@ target_compile_definitions(TerminalEmulator PRIVATE
 	DVI_VERTICAL_REPEAT=1
 	DVI_N_TMDS_BUFFERS=3
 	DVI_MONOCHROME_TMDS=1
+    RCR_DEBUG=1
 )
 
 # agrega directorios para los include
 target_include_directories(TerminalEmulator PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/src
     ${PICO_SDK_PATH}/src/rp2_common/hardware/include
     ${PICO_SDK_PATH}/src/rp2_common/pico_stdlib/include
     ${PICO_DVI_PATH}/software/include
     ${PICO_DVI_PATH}/software/libdvi
     ${PICO_SDK_PATH}/lib/tinyusb/src
-    ${CMAKE_CURRENT_LIST_DIR}/src
 )
 
 # agrega las librerias requeridas
@@ -83,7 +85,7 @@ pico_generate_pio_header(TerminalEmulator
 pico_enable_stdio_usb(TerminalEmulator 0)
 
 # habilita/deshabilita la salida estandar por UART0
-pico_enable_stdio_uart(TerminalEmulator 0)
+pico_enable_stdio_uart(TerminalEmulator 1)
 
 # archivos finales UF2, bin, elf
 pico_add_extra_outputs(TerminalEmulator)

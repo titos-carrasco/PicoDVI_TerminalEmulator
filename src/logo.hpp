@@ -6,6 +6,7 @@
 #define LOGO_ROWS 12
 #define LOGO_COLS 48
 
+// clang-format off
 static uint8_t logo[LOGO_ROWS][LOGO_COLS+1] = {
     "#:  :##  ########   .###      .####.    .####.  ",
     "##    ##  ########   ####      ######    ###### ",
@@ -20,5 +21,6 @@ static uint8_t logo[LOGO_ROWS][LOGO_COLS+1] = {
     "  ####       ##     ########   ######    ###### ",
     "   ##        ##     ########   .####.    .####. "
 };
+// clang-format off
 
 #endif // _RCR_LOGO_H_

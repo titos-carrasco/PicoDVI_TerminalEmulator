@@ -2,16 +2,21 @@ BasedOnStyle: LLVM
 IndentWidth: 4
 TabWidth: 4
 UseTab: Never
+ColumnLimit: 120
+SortIncludes: false
+
+AlwaysBreakAfterReturnType: None
 BreakBeforeBraces: Attach
+
 AllowShortFunctionsOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
-ColumnLimit: 120
+AllowShortBlocksOnASingleLine: false
+
 SpaceBeforeParens: ControlStatements
-AlwaysBreakAfterReturnType: None
-PointerAlignment: Right
 SpacesInAngles: false
 SpaceAfterCStyleCast: true
 
+PointerAlignment: Right
 AlignConsecutiveMacros: true
 AlignConsecutiveAssignments: true
