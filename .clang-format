@@ -8,10 +8,11 @@ SortIncludes: false
 AlwaysBreakAfterReturnType: None
 BreakBeforeBraces: Attach
 
-AllowShortFunctionsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
 AllowShortBlocksOnASingleLine: false
+AlwaysBreakTemplateDeclarations: Yes
 
 SpaceBeforeParens: ControlStatements
 SpacesInAngles: false

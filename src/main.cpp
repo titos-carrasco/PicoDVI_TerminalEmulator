@@ -1,21 +1,25 @@
-#include <string.h>
 extern "C" {
-#include "hardware/structs/bus_ctrl.h"
 #include "pico/multicore.h"
-#include "pico/stdio_uart.h"
+#include "hardware/structs/bus_ctrl.h"
+#include "hardware/uart.h"
+#include "hardware/gpio.h"
 #include "tusb.h"
 }
 #include "DVIDisplay.hpp"
 #include "HIDKeyboard.hpp"
+#include "vt100.hpp"
 #include "font8x8.hpp"
 #include "logo.hpp"
 
-#define CHAR_ROWS 40
-#define CHAR_COLS 60
+// pareciera que tenemos mejor rendimiento con esto
+#define UART_ID     uart0
+#define UART_BAUD   115200
+#define UART_TX_PIN 0
+#define UART_RX_PIN 1
 
-static char screen[CHAR_ROWS][CHAR_COLS];
-
-extern "C" {
+// para el tamaño de nuestra pantalla de terminal
+#define SCREEN_ROWS 40
+#define SCREEN_COLS 60
 
 // core 1: corre el despliegue DVI
 void __not_in_flash("main") core1_entry() {
@@ -31,14 +35,22 @@ void __not_in_flash("main") core1_entry() {
 
 // core 0: corre el teclado USB y el resto de la logica
 int __not_in_flash("main") main() {
-    // inicializamos el control del despliegue HDMI/DVI
-    DVIDisplay::getInstance().init(MODE_640x480_60Hz, (char *) &screen, CHAR_ROWS, CHAR_COLS, font8x8);
+    // el emulador vt100y sy buffer de pantalla
+    auto &vt100                = VT100<SCREEN_ROWS, SCREEN_COLS>::getInstance();
+    char(*screen)[SCREEN_COLS] = vt100.getScreen();
 
-// inicializamos UART
-#if RCR_DEBUG == 1
-    stdio_uart_init();
+    // inicializamos el control del despliegue HDMI/DVI
+    DVIDisplay::getInstance().init(MODE_640x480_60Hz, (char *) screen, SCREEN_ROWS, SCREEN_COLS, font8x8);
+
+    // inicializamos UART
+    uart_init(UART_ID, UART_BAUD);
+    gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
+    gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
+    uart_set_fifo_enabled(UART_ID, true);
     sleep_ms(100);
-    printf("Comenzando\n");
+#if RCR_DEBUG == 1
+    const char *dbg_message = "\r\nShow time ...\r\n";
+    uart_write_blocking(UART_ID, (uint8_t *) dbg_message, strlen(dbg_message));
 #endif
 
     // inicializamos TinyUSB en modo host
@@ -49,38 +61,40 @@ int __not_in_flash("main") main() {
     multicore_launch_core1(core1_entry);
 
     // llenamos la pantalla con digitos
-    for (uint r = 0; r < CHAR_ROWS; r++) {
-        for (uint c = 0; c < CHAR_COLS; c++) {
+    vt100.clearScreen();
+    for (uint r = 0; r < SCREEN_ROWS; r++) {
+        for (uint c = 0; c < SCREEN_COLS; c++) {
             screen[r][c] = '!' + c; //+ (c % 10);
         }
     }
     sleep_ms(2000);
-    memset(screen, ' ', CHAR_ROWS * CHAR_COLS);
 
     // mostramos el logo
+    vt100.clearScreen();
     for (uint r = 0; r < LOGO_ROWS; r++) {
         for (uint c = 0; c < LOGO_COLS; c++) {
-            screen[r][(CHAR_COLS - LOGO_COLS) / 2 + c] = logo[r][c];
+            screen[r][(SCREEN_COLS - LOGO_COLS) / 2 + c] = logo[r][c];
         }
     }
     sleep_ms(1000);
-    memset(screen, ' ', CHAR_ROWS * CHAR_COLS);
 
     // show time
     HIDKeyboard &kbd = HIDKeyboard::getInstance();
     KeyEvent keyEvent;
+    vt100.clearScreen();
     while (1) {
         tuh_task();
+
         keyEvent = kbd.getKeyEvent();
-        if (keyEvent.ch) {
-            screen[0][0] = keyEvent.ch;
-#if RCR_DEBUG == 1
-            printf("%c\n", keyEvent.ch);
-#endif
+        if (keyEvent.ch)
+            putchar(keyEvent.ch);
+
+        if (uart_is_readable(uart0)) {
+            char ch = uart_getc(uart0);
+            vt100.print(ch);
         }
     }
     __builtin_unreachable();
 
     return 0;
-}
 }
