@@ -17,9 +17,10 @@ extern "C" {
 #define UART_TX_PIN 0
 #define UART_RX_PIN 1
 
-// para el tamaño de nuestra pantalla de terminal
+// el buffer de pantalla
 #define SCREEN_ROWS 40
-#define SCREEN_COLS 60
+#define SCREEN_COLS 80
+char *screen[SCREEN_ROWS][SCREEN_COLS];
 
 // core 1: corre el despliegue DVI
 void __not_in_flash("main") core1_entry() {
@@ -35,9 +36,8 @@ void __not_in_flash("main") core1_entry() {
 
 // core 0: corre el teclado USB y el resto de la logica
 int __not_in_flash("main") main() {
-    // el emulador vt100y sy buffer de pantalla
-    auto &vt100                = VT100<SCREEN_ROWS, SCREEN_COLS>::getInstance();
-    char(*screen)[SCREEN_COLS] = vt100.getScreen();
+    // el emulador vt100
+    VT100 vt100((char *) screen, SCREEN_ROWS, SCREEN_COLS);
 
     // inicializamos el control del despliegue HDMI/DVI
     DVIDisplay::getInstance().init(MODE_640x480_60Hz, (char *) screen, SCREEN_ROWS, SCREEN_COLS, font8x8);
@@ -64,7 +64,7 @@ int __not_in_flash("main") main() {
     vt100.clearScreen();
     for (uint r = 0; r < SCREEN_ROWS; r++) {
         for (uint c = 0; c < SCREEN_COLS; c++) {
-            screen[r][c] = '!' + c; //+ (c % 10);
+            vt100.print('!' + c); //+ (c % 10);
         }
     }
     sleep_ms(2000);
@@ -72,8 +72,9 @@ int __not_in_flash("main") main() {
     // mostramos el logo
     vt100.clearScreen();
     for (uint r = 0; r < LOGO_ROWS; r++) {
+        vt100.setPosition(r, 0);
         for (uint c = 0; c < LOGO_COLS; c++) {
-            screen[r][(SCREEN_COLS - LOGO_COLS) / 2 + c] = logo[r][c];
+            vt100.print(logo[r][c]);
         }
     }
     sleep_ms(1000);
@@ -87,7 +88,7 @@ int __not_in_flash("main") main() {
 
         keyEvent = kbd.getKeyEvent();
         if (keyEvent.ch)
-            putchar(keyEvent.ch);
+            uart_putc(UART_ID, keyEvent.ch);
 
         if (uart_is_readable(uart0)) {
             char ch = uart_getc(uart0);
