@@ -72,17 +72,17 @@ int __not_in_flash("main") main() {
     // mostramos el logo
     vt100.clearScreen();
     for (uint r = 0; r < LOGO_ROWS; r++) {
-        vt100.setPosition(r, 0);
+        vt100.setPosition(r + (SCREEN_ROWS - LOGO_ROWS) / 2, (SCREEN_COLS - LOGO_COLS) / 2);
         for (uint c = 0; c < LOGO_COLS; c++) {
             vt100.print(logo[r][c]);
         }
     }
     sleep_ms(1000);
+    vt100.print("\e[2J\e[0;0H");
 
     // show time
     HIDKeyboard &kbd = HIDKeyboard::getInstance();
     KeyEvent keyEvent;
-    vt100.clearScreen();
     while (1) {
         tuh_task();
 

@@ -7,6 +7,7 @@ VT100::VT100(char *screen, uint16_t rows, uint16_t cols) {
     this->cols    = cols;
     mode_autoWrap = true;
     mode_newLine  = false;
+    mode_cursor   = false;
     clearScreen();
 }
 
@@ -25,7 +26,7 @@ void VT100::print(char ch) {
         return;
 }
 
-void VT100::print(char *s) {
+void VT100::print(const char *s) {
     while (*s)
         print(*s++);
 }
@@ -105,12 +106,16 @@ bool VT100::isControl(char ch) {
     }
     // form feed
     else if (ch == 0x0C) {
-        clearScreen();
+        setRowPosition(cur_row + 1);
+        if (mode_newLine)
+            setColPosition(0);
     }
     // carriage return
     else if (ch == 0x0D) {
         setColPosition(0);
-    } else
+    }
+    // no reconocido
+    else
         return false;
 
     return true;
@@ -119,4 +124,10 @@ bool VT100::isControl(char ch) {
 void VT100::autoScroll() {
     memmove(screen, screen + cols, rows * cols - cols);
     memset(screen + rows * cols - cols, ' ', cols);
+}
+
+void VT100::cursorOn() {
+}
+
+void VT100::cursorOff() {
 }

@@ -87,7 +87,7 @@ pico_generate_pio_header(TerminalEmulator
 pico_enable_stdio_usb(TerminalEmulator 0)
 
 # habilita/deshabilita la salida estandar por UART0
-pico_enable_stdio_uart(TerminalEmulator 1)
+pico_enable_stdio_uart(TerminalEmulator 0)
 
 # archivos finales UF2, bin, elf
 pico_add_extra_outputs(TerminalEmulator)
