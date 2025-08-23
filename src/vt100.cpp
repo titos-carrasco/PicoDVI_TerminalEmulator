@@ -1,133 +1,244 @@
 #include <string.h>
-#include "vt100.hpp"
+#include "Terminal.hpp"
 
-VT100::VT100(char *screen, uint16_t rows, uint16_t cols) {
-    this->screen  = screen;
-    this->rows    = rows;
-    this->cols    = cols;
-    mode_autoWrap = true;
-    mode_newLine  = false;
-    mode_cursor   = false;
-    clearScreen();
-}
+typedef enum {
+    STATE_INIT = 0, //
+    STATE_NUMBER1,  // ESC[n
+    STATE_SEMI,     // ESC[n;
+    STATE_NUMBER2,  // ESC[n;m
+    STATE_QMARK,    // ESC[?
+    STATE_QMARK2,   // ESC[?2
+    STATE_QMARK5,   // ESC[?25
+} term_state_t;
 
-void VT100::clearScreen() {
-    cur_row = 0;
-    cur_col = 0;
-    memset(screen, ' ', rows * cols);
-}
+bool Terminal::doVT100(char ch) {
+    static term_state_t term_state = STATE_INIT;
+    static int number1             = 0;
+    static int number2             = 0;
 
-void VT100::print(char ch) {
-    if (isEscSequence(ch))
-        return;
-    if (isPrintable(ch))
-        return;
-    if (isControl(ch))
-        return;
-}
+    if (term_state == STATE_INIT) {
+        number1 = 0;
+        number2 = 0;
 
-void VT100::print(const char *s) {
-    while (*s)
-        print(*s++);
-}
+        // ESC[n
+        if (ch >= '0' && ch <= '9') {
+            number1    = ch - '0';
+            term_state = STATE_NUMBER1;
+            return false;
+        }
+        // ESC[A cursor arriba
+        else if (ch == 'A') {
+            cursorUp();
+        }
+        // ESC[B cursor abajo
+        else if (ch == 'B') {
+            cursorDown();
+        }
+        // ESC[C cursor adelante
+        else if (ch == 'C') {
+            cursorRight();
+        }
+        // ESC[D cursor atras
+        else if (ch == 'D') {
+            cursorLeft();
+        }
+        // ESC[E cursor inicio siguiente linea
+        else if (ch == 'E') {
+            cursorTo(curRow, 0);
+            cursorDown();
+        }
+        // ESC[F cursor inicio linea anterior
+        else if (ch == 'F') {
+            cursorTo(curRow, 0);
+            cursorUp();
+        }
+        // ESC[G cursor a columna
+        else if (ch == 'G') {
+            cursorTo(curRow, 0);
+        }
+        // ESC[H cursor a inicio
+        else if (ch == 'H') {
+            cursorTo(0, 0);
+        }
+        // ESC[J limpia pantalla
+        else if (ch == 'J') {
+            // desde el cursor hasta el final de pantalla
+            cls(curRow, curCol, rows - 1, cols - 1);
+        }
+        // ESC[K limpia la linea
+        else if (ch == 'K') {
+            // desde el cursor hasta fin de linea
+            cls(curRow, curCol, curRow, cols - 1);
+        }
+        // ESC[s guarda posicion del cursor
+        else if (ch == 's') {
+            cursorSave();
+        }
+        // ESC[u restaura posicion del cursor
+        else if (ch == 'u') {
+            cursorRestore();
+        }
+        // ESC[? visibilidad del cursor
+        else if (ch == '?') {
+            term_state = STATE_QMARK;
+            return false;
+        }
 
-void VT100::print(uint16_t row, uint16_t col, char ch) {
-    setPosition(row, col);
-    print(ch);
-}
-
-void VT100::print(uint16_t row, uint16_t col, char *s) {
-    setPosition(row, col);
-    while (*s)
-        print(*s++);
-}
-
-void VT100::setPosition(uint16_t row, uint16_t col) {
-    setColPosition(col);
-    setRowPosition(row);
-}
-
-void VT100::setRowPosition(uint16_t row) {
-    if (row <= rows - 1)
-        cur_row = row;
-    else {
-        cur_row = rows - 1;
-        if (mode_autoWrap)
-            autoScroll();
+        return true;
     }
-}
 
-void VT100::setColPosition(uint16_t col) {
-    if (col <= cols - 1)
-        cur_col = col;
-    else {
-        if (mode_autoWrap) {
-            cur_col = 0;
-            setRowPosition(cur_row + 1);
-        } else
-            cur_col = cols - 1;
+    else if (term_state == STATE_NUMBER1) {
+        // ESC[n
+        if (ch >= '0' && ch <= '9') {
+            number1 = number1 * 10 + (ch - '0');
+            return false;
+        }
+        // ESC[n;
+        else if (ch == ';') {
+            term_state = STATE_SEMI;
+            return false;
+        }
+        // ESC[nA cursor arriba
+        else if (ch == 'A') {
+            while (number1--)
+                cursorUp();
+        }
+        // ESC[nB cursor abajo
+        else if (ch == 'B') {
+            while (number1--)
+                cursorDown();
+        }
+        // ESC[nC cursor adelante
+        else if (ch == 'C') {
+            while (number1--)
+                cursorRight();
+        }
+        // ESC[nD cursor atras
+        else if (ch == 'D') {
+            while (number1--)
+                cursorLeft();
+        }
+        // ESC[nE inicio de la siguiente N linea
+        else if (ch == 'E') {
+            cursorTo(curRow, 0);
+            while (number1--)
+                cursorDown();
+        }
+        // ESC[nF inicio de la anterior N linea
+        else if (ch == 'F') {
+            cursorTo(curRow, 0);
+            while (number1--)
+                cursorUp();
+        }
+        // ESC[G cursor a columna
+        else if (ch == 'G') {
+            cursorTo(curRow, number1 == 0 ? number1 : number1 - 1);
+        }
+        // ESC[nH cursor a posicion
+        else if (ch == 'H') {
+            cursorTo(number1 == 0 ? number1 : number1 - 1, curCol);
+        }
+        // ESC[nJ limpia pantalla
+        else if (ch == 'J') {
+            // ESC[0J desde el cursor a fin de pantalla
+            if (number1 == 0) {
+                cls(curRow, curCol, rows - 1, cols - 1);
+            }
+            // ESC[1J desde el cursor hasta inicio de pantalla
+            else if (number1 == 1) {
+                cls(curRow, curCol, 0, 0);
+            }
+            // ESC[2J toda la pantalla
+            else if (number1 == 2) {
+                cls();
+            }
+        }
+        // ESC[nK limpia la linea
+        else if (ch == 'K') {
+            // ESC[0K desde el cursor hasta el fin de linea
+            if (number1 == 0) {
+                cls(curRow, curCol, curRow, cols - 1);
+            }
+            // ESC[1K desde el cursor hasta el inicio de la linea
+            else if (number1 == 1) {
+                cls(curRow, curCol, curRow, 0);
+            }
+            // ESC[2K toda la linea
+            else if (number1 == 2) {
+                cls(curRow, 0, curRow, cols - 1);
+            }
+        }
+        term_state = STATE_INIT;
+        return true;
     }
-}
 
-bool VT100::isPrintable(char ch) {
-    if (ch < 0x20 || ch > 0x7E)
-        return false;
+    else if (term_state == STATE_SEMI) {
+        // ESC[n;n
+        if (ch >= '0' && ch <= '9') {
+            number2    = ch - '0';
+            term_state = STATE_NUMBER2;
+            return false;
+        }
+        // ESC[n;H cursor a posicion
+        else if (ch == 'H') {
+            cursorTo(number1 == 0 ? number1 : number1 - 1, 0);
+        }
 
-    screen[cur_row * cols + cur_col] = ch;
-    setColPosition(cur_col + 1);
+        term_state = STATE_INIT;
+        return true;
+    }
+
+    else if (term_state == STATE_NUMBER2) {
+        // ESC[n;n
+        if (ch >= '0' && ch <= '9') {
+            number2 = number2 * 10 + (ch - '0');
+            return false;
+        }
+        // ESC[n;nH cursor a posicion
+        else if (ch == 'H') {
+            cursorTo(number1 == 0 ? number1 : number1 - 1, number2 == 0 ? number2 : number2 - 1);
+        }
+
+        term_state = STATE_INIT;
+        return true;
+    }
+
+    else if (term_state == STATE_QMARK) {
+        // ESC[?2 visibilidad del cursor
+        if (ch == '2') {
+            term_state = STATE_QMARK2;
+            return false;
+        }
+
+        term_state = STATE_INIT;
+        return true;
+    }
+
+    else if (term_state == STATE_QMARK2) {
+        // ESC[?25 visibilidad del cursor
+        if (ch == '5') {
+            term_state = STATE_QMARK5;
+            return false;
+        }
+
+        term_state = STATE_INIT;
+        return true;
+    }
+
+    else if (term_state == STATE_QMARK5) {
+        // ESC[?25h cursor on
+        if (ch == 'h') {
+            setCursor(true);
+        }
+        // ESC[?25l cursor on
+        if (ch == 'l') {
+            setCursor(false);
+        }
+
+        term_state = STATE_INIT;
+        return true;
+    }
+
+    term_state = STATE_INIT;
     return true;
-}
-
-bool VT100::isControl(char ch) {
-    // bell
-    if (ch == 0x07) {
-        // emitir beep
-    }
-    // backspace
-    else if (ch == 0x08) {
-        setColPosition(cur_col - 1);
-    }
-    // tab
-    else if (ch == 0x09) {
-        setColPosition((cur_col / 8 + 1) * 8);
-
-    }
-    // line feed (new line)
-    else if (ch == 0x0A) {
-        setRowPosition(cur_row + 1);
-        if (mode_newLine)
-            setColPosition(0);
-    }
-    // vertical tab
-    else if (ch == 0x0B) {
-        setRowPosition(cur_row + 1);
-        if (mode_newLine)
-            setColPosition(0);
-    }
-    // form feed
-    else if (ch == 0x0C) {
-        setRowPosition(cur_row + 1);
-        if (mode_newLine)
-            setColPosition(0);
-    }
-    // carriage return
-    else if (ch == 0x0D) {
-        setColPosition(0);
-    }
-    // no reconocido
-    else
-        return false;
-
-    return true;
-}
-
-void VT100::autoScroll() {
-    memmove(screen, screen + cols, rows * cols - cols);
-    memset(screen + rows * cols - cols, ' ', cols);
-}
-
-void VT100::cursorOn() {
-}
-
-void VT100::cursorOff() {
 }

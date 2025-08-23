@@ -7,7 +7,7 @@ extern "C" {
 }
 #include "DVIDisplay.hpp"
 #include "HIDKeyboard.hpp"
-#include "vt100.hpp"
+#include "Terminal.hpp"
 #include "font8x8.hpp"
 #include "logo.hpp"
 
@@ -37,7 +37,7 @@ void __not_in_flash("main") core1_entry() {
 // core 0: corre el teclado USB y el resto de la logica
 int __not_in_flash("main") main() {
     // el emulador vt100
-    VT100 vt100((char *) screen, SCREEN_ROWS, SCREEN_COLS);
+    Terminal terminal((char *) screen, SCREEN_ROWS, SCREEN_COLS);
 
     // inicializamos el control del despliegue HDMI/DVI
     DVIDisplay::getInstance().init(MODE_640x480_60Hz, (char *) screen, SCREEN_ROWS, SCREEN_COLS, font8x8);
@@ -61,26 +61,30 @@ int __not_in_flash("main") main() {
     multicore_launch_core1(core1_entry);
 
     // llenamos la pantalla con digitos
-    vt100.clearScreen();
+    terminal.cls();
+    terminal.cursorTo(0, 0);
     for (uint r = 0; r < SCREEN_ROWS; r++) {
         for (uint c = 0; c < SCREEN_COLS; c++) {
-            vt100.print('!' + c); //+ (c % 10);
+            terminal.print('!' + c); //+ (c % 10);
         }
     }
     sleep_ms(2000);
 
     // mostramos el logo
-    vt100.clearScreen();
+    terminal.cls();
+    terminal.cursorTo(0, 0);
     for (uint r = 0; r < LOGO_ROWS; r++) {
-        vt100.setPosition(r + (SCREEN_ROWS - LOGO_ROWS) / 2, (SCREEN_COLS - LOGO_COLS) / 2);
+        terminal.cursorTo(r + (SCREEN_ROWS - LOGO_ROWS) / 2, (SCREEN_COLS - LOGO_COLS) / 2);
         for (uint c = 0; c < LOGO_COLS; c++) {
-            vt100.print(logo[r][c]);
+            terminal.print(logo[r][c]);
         }
     }
     sleep_ms(1000);
-    vt100.print("\e[2J\e[0;0H");
 
     // show time
+    terminal.cls();
+    terminal.cursorTo(0, 0);
+
     HIDKeyboard &kbd = HIDKeyboard::getInstance();
     KeyEvent keyEvent;
     while (1) {
@@ -92,7 +96,7 @@ int __not_in_flash("main") main() {
 
         if (uart_is_readable(uart0)) {
             char ch = uart_getc(uart0);
-            vt100.print(ch);
+            terminal.print(ch);
         }
     }
     __builtin_unreachable();

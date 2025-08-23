@@ -30,8 +30,9 @@ add_executable(TerminalEmulator
 	./src/main.cpp
     ./src/DVIDisplay.cpp
     ./src/HIDKeyboard.cpp
+    ./src/Terminal.cpp
+    ./src/vt52.cpp
     ./src/vt100.cpp
-    ./src/automata.cpp
 )
 
 # agrega otras fuentes
