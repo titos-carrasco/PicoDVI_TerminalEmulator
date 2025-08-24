@@ -18,7 +18,7 @@ extern "C" {
 #define UART_RX_PIN 1
 
 // el buffer de pantalla
-#define SCREEN_ROWS 40
+#define SCREEN_ROWS 24
 #define SCREEN_COLS 80
 char *screen[SCREEN_ROWS][SCREEN_COLS];
 

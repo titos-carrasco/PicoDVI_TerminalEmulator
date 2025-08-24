@@ -6,25 +6,26 @@
 class Terminal {
   public:
     Terminal(char *screen, uint16_t rows, uint16_t cols);
-    virtual void reset();
-    virtual void cls();
-    virtual void cls(uint16_t row1, uint16_t col1, uint16_t row2, uint16_t col2);
-    virtual void print(char ch);
-    virtual void print(const char *s);
-    virtual void print(uint16_t row, uint16_t col, char ch);
-    virtual void print(uint16_t row, uint16_t col, char *s);
-    virtual void cursorTo(uint16_t row, uint16_t col);
-    virtual void cursorUp();
-    virtual void cursorDown();
-    virtual void cursorLeft();
-    virtual void cursorRight();
-    virtual void cursorSave();
-    virtual void cursorRestore();
-    virtual void setWrap(bool enable);
-    virtual void setCursor(bool enable);
-    virtual void setScroll(bool enable);
-    virtual void setNewline(bool enable);
-    virtual void setVT52Mode(bool enable);
+    void reset();
+    void cls();
+    void cls(uint16_t fromRow, uint16_t fromCol, uint16_t toRow, uint16_t toCol);
+    void insertLine();
+    void deleteLine();
+    void scrollUp();
+    void print(char ch);
+    void print(const char *s);
+    void print(uint16_t row, uint16_t col, char ch);
+    void print(uint16_t row, uint16_t col, char *s);
+    void cursorTo(uint16_t row, uint16_t col);
+    bool cursorUp();
+    bool cursorDown();
+    bool cursorLeft();
+    bool cursorRight();
+    void cursorSave();
+    void cursorRestore();
+    void setWrap(bool enable);
+    void setCursor(bool enable);
+    void setNewline(bool enable);
 
   private:
     char *screen;
@@ -34,11 +35,9 @@ class Terminal {
     uint16_t curCol;
     uint16_t curRow_s;
     uint16_t curCol_s;
-    bool wrapOn;
-    bool scrollOn;
     bool cursorOn;
     bool newlineOn;
-    bool vt52ModeOn;
+    bool wrapOn;
 
     void doControlChar(char ch);
     void doPrintableChar(char ch);
